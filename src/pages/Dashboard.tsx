@@ -289,6 +289,14 @@ const Dashboard = () => {
                 <BarChart3 className="w-4 h-4 mr-2" />
                 View Sample Report
               </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/earnings')}
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:shadow-md transition-all duration-200"
+              >
+                <Calendar className="w-4 h-4 mr-2" />
+                Earnings Analysis
+              </Button>
             </div>
           </CardContent>
         </Card>

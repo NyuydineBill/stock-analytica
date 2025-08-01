@@ -9,6 +9,7 @@ import Portfolio from "./pages/Portfolio";
 import ResearchReport from "./pages/ResearchReport";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
+import EarningsAnalysis from "./pages/EarningsAnalysis";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +25,7 @@ const App = () => (
           <Route path="/analyze/:symbol" element={<StockAnalysis />} />
           <Route path="/report/:symbol" element={<ResearchReport />} />
           <Route path="/portfolio" element={<Portfolio />} />
+          <Route path="/earnings" element={<EarningsAnalysis />} />
           <Route path="/settings" element={<Settings />} />
           <Route path="/profile" element={<Profile />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}

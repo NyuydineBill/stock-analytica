@@ -1,73 +1,122 @@
-# Welcome to your Lovable project
+# Stock Analytica - Equity Research Platform
 
-## Project info
+A comprehensive equity research automation platform that transforms Excel stock lists into professional-grade equity research reports using advanced AI analysis.
 
-**URL**: https://lovable.dev/projects/613f75b8-eb8d-4646-8bd9-9645dae7084a
+## Features
 
-## How can I edit this code?
+### Core Functionality
+- **Excel Stock List Processing**: Upload and parse Excel files containing stock information
+- **AI-Powered Report Generation**: Generate institutional-grade equity research reports
+- **Stock Selection & Configuration**: Choose specific stocks and customize analysis sections
+- **Manual Stock Ranking System**: Rate stocks on a -5 to +5 scale with personal notes
+- **Portfolio Management**: Track and manage your stock ratings and analysis history
 
-There are several ways of editing your application.
+### Earnings Analysis (New)
+- **Earnings Calendar**: Track upcoming and released earnings with key metrics
+- **Quarterly Analysis**: Analyze specific earnings releases and their market impact
+- **Market Sentiment**: Monitor overall market sentiment and analyst activity
+- **Real-time Updates**: Stay informed during earnings season with live data
 
-**Use Lovable**
+### Professional Reports
+- **Company Overview**: Business history, management changes, SWOT analysis
+- **Sector Review**: Regulatory environment, industry trends, market dynamics
+- **Valuation Analysis**: Price targets, peer comparison, key drivers
+- **Sentiment Guidance**: Analyst revisions, consensus estimates
+- **Investment Thesis**: Bull, bear, and base case scenarios with probabilities
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/613f75b8-eb8d-4646-8bd9-9645dae7084a) and start prompting.
+## Technology Stack
 
-Changes made via Lovable will be committed automatically to this repo.
+- **Frontend**: React 18, TypeScript, Vite
+- **UI Components**: shadcn/ui, Tailwind CSS
+- **State Management**: React Query, React Router
+- **Build Tool**: Vite
+- **Styling**: Tailwind CSS
 
-**Use your preferred IDE**
+## Getting Started
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+### Prerequisites
+- Node.js 18+ and npm
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+### Installation
 
-Follow these steps:
+```bash
+# Clone the repository
+git clone <repository-url>
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+# Navigate to the project directory
+cd stock-analytica
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+# Install dependencies
+npm install
 
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
+# Start the development server
 npm run dev
 ```
 
-**Edit a file directly in GitHub**
+### Available Scripts
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
+```bash
+# Start development server
+npm run dev
 
-**Use GitHub Codespaces**
+# Build for production
+npm run build
 
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
+# Preview production build
+npm run preview
 
-## What technologies are used for this project?
+# Run linting
+npm run lint
+```
 
-This project is built with:
+## Project Structure
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+```
+src/
+├── components/          # Reusable UI components
+│   ├── layout/         # Layout components (Header, Layout)
+│   └── ui/            # shadcn/ui components
+├── pages/             # Main application pages
+│   ├── Dashboard.tsx  # Main dashboard
+│   ├── Portfolio.tsx  # Portfolio management
+│   ├── StockAnalysis.tsx # Stock analysis interface
+│   ├── EarningsAnalysis.tsx # Earnings analysis (new)
+│   └── ResearchReport.tsx # Report viewer
+├── hooks/             # Custom React hooks
+├── lib/               # Utility functions
+└── data/              # Mock data and constants
+```
 
-## How can I deploy this project?
+## Usage
 
-Simply open [Lovable](https://lovable.dev/projects/613f75b8-eb8d-4646-8bd9-9645dae7084a) and click on Share -> Publish.
+1. **Upload Stock List**: Use the dashboard to upload your Excel file containing stock data
+2. **Select Stocks**: Choose specific stocks from your uploaded list for analysis
+3. **Configure Analysis**: Select which sections to include in your research report
+4. **Generate Reports**: Let AI create comprehensive equity research reports
+5. **Rate Stocks**: Assign personal ratings and notes to track your analysis
+6. **Monitor Earnings**: Use the new Earnings Analysis feature during earnings season
 
-## Can I connect a custom domain to my Lovable project?
+## Development
 
-Yes, you can!
+This project uses modern React patterns and best practices:
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+- **TypeScript**: Full type safety throughout the application
+- **Component Architecture**: Modular, reusable components
+- **Responsive Design**: Mobile-first approach with Tailwind CSS
+- **Accessibility**: WCAG compliant components and interactions
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/tips-tricks/custom-domain#step-by-step-guide)
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add some amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
+
+## License
+
+This project is licensed under the MIT License - see the LICENSE file for details.
+
+## Support
+
+For support and questions, please open an issue in the repository or contact the development team.

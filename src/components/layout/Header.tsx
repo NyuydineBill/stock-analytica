@@ -11,7 +11,8 @@ import {
   X, 
   ChevronDown,
   FileText,
-  Target
+  Target,
+  Calendar
 } from "lucide-react";
 import { Button } from "../ui/button";
 import { Badge } from "../ui/badge";
@@ -69,6 +70,13 @@ const Header = () => {
       return {
         title: "Portfolio",
         subtitle: "Stock Ratings & Performance"
+      };
+    }
+    
+    if (path === '/earnings') {
+      return {
+        title: "Earnings Analysis",
+        subtitle: "Quarterly Earnings & Market Sentiment"
       };
     }
     
@@ -140,6 +148,7 @@ const Header = () => {
   const navigationItems = [
     { path: '/', label: 'Dashboard', icon: Home },
     { path: '/portfolio', label: 'Portfolio', icon: TrendingUp },
+    { path: '/earnings', label: 'Earnings', icon: Calendar },
   ];
 
   return (
