@@ -7,8 +7,12 @@ import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Label } from "@/components/ui/label";
 import ProgressIndicator from "@/components/ui/progress-indicator";
 import Layout from "@/components/layout/Layout";
-import { ArrowLeft, Play, Settings } from "lucide-react";
+import { ArrowLeft, Play, Settings, Target, Clock, Zap, FileText, BarChart3 } from "lucide-react";
 import { useNavigate } from "react-router-dom";
+import { analysisSteps } from "@/data/mockData";
+import ReportConfig, { ReportConfiguration } from "@/components/ui/report-config";
+import StockRating from "@/components/ui/stock-rating";
+import PDFExport from "@/components/ui/pdf-export";
 
 interface AnalysisStep {
   id: string;
@@ -19,11 +23,18 @@ interface AnalysisStep {
 
 const StockAnalysis = () => {
   const navigate = useNavigate();
-  const [selectedSections, setSelectedSections] = useState<string[]>(['overview', 'thesis']);
+  const [selectedSections, setSelectedSections] = useState<string[]>(['overview', 'sector', 'valuation', 'sentiment', 'thesis']);
   const [analysisDepth, setAnalysisDepth] = useState('standard');
   const [isAnalyzing, setIsAnalyzing] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [progress, setProgress] = useState(0);
+  const [showReportConfig, setShowReportConfig] = useState(false);
+  const [showRating, setShowRating] = useState(false);
+  const [showPDFExport, setShowPDFExport] = useState(false);
+  const [reportConfig, setReportConfig] = useState<ReportConfiguration | null>(null);
+  const [stockRating, setStockRating] = useState(0);
+  const [ratingNotes, setRatingNotes] = useState('');
+  const [ratingHistory, setRatingHistory] = useState<any[]>([]);
 
   const analysisSections: AnalysisStep[] = [
     {
@@ -55,16 +66,16 @@ const StockAnalysis = () => {
       label: 'Investment Thesis',
       description: 'Bull, bear, and base case scenarios',
       required: true
+    },
+    {
+      id: 'projections',
+      label: 'Financial Projections',
+      description: 'Revenue and earnings forecasts',
+      required: false
     }
   ];
 
-  const analysisSteps = [
-    "Analyzing company fundamentals...",
-    "Conducting sector research...",
-    "Performing valuation analysis...",
-    "Generating investment scenarios...",
-    "Finalizing report structure..."
-  ];
+  // Using analysisSteps from mockData
 
   const mockStock = {
     symbol: "AAPL",
@@ -97,6 +108,10 @@ const StockAnalysis = () => {
         if (newProgress >= 100) {
           clearInterval(interval);
           setIsAnalyzing(false);
+          // Navigate to the research report page after analysis is complete
+          setTimeout(() => {
+            navigate(`/report/${mockStock.symbol}`);
+          }, 1000);
           return 100;
         }
         
@@ -109,166 +124,131 @@ const StockAnalysis = () => {
     }, 1500);
   };
 
+  const handleConfigChange = (config: ReportConfiguration) => {
+    setReportConfig(config);
+  };
+
+  const handleRatingChange = (rating: number, notes: string) => {
+    setStockRating(rating);
+    setRatingNotes(notes);
+  };
+
+  const handleRatingHistory = (history: any[]) => {
+    setRatingHistory(history);
+  };
+
+  const handleStartAnalysis = () => {
+    setShowReportConfig(false);
+    startAnalysis();
+  };
+
   return (
     <Layout>
-      <div className="max-w-4xl mx-auto space-y-6">
+      <div className="max-w-6xl mx-auto space-y-8">
+        {/* Header */}
         <div className="flex items-center gap-4">
-          <Button variant="outline" size="sm" onClick={() => navigate('/')}>
+          <Button 
+            variant="outline" 
+            size="sm" 
+            onClick={() => navigate('/')}
+            className="border-gray-300 hover:bg-gray-50 transition-colors"
+          >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Back to Dashboard
           </Button>
-        <div>
-          <h1 className="text-2xl font-bold">{mockStock.symbol} Analysis</h1>
-          <p className="text-muted-foreground">{mockStock.name}</p>
-        </div>
-      </div>
-
-      {!isAnalyzing ? (
-        <div className="grid gap-6 lg:grid-cols-2">
-          {/* Configuration Panel */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle className="flex items-center gap-2">
-                  <Settings className="w-5 h-5" />
-                  Report Configuration
-                </CardTitle>
-                <CardDescription>
-                  Customize your equity research report
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div>
-                  <Label className="text-base font-medium">Report Sections</Label>
-                  <div className="mt-3 space-y-3">
-                    {analysisSections.map((section) => (
-                      <div key={section.id} className="flex items-start space-x-3">
-                        <Checkbox
-                          id={section.id}
-                          checked={selectedSections.includes(section.id)}
-                          onCheckedChange={(checked) => 
-                            handleSectionToggle(section.id, checked as boolean)
-                          }
-                          disabled={section.required}
-                        />
-                        <div className="grid gap-1.5 leading-none">
-                          <label
-                            htmlFor={section.id}
-                            className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70 flex items-center gap-2"
-                          >
-                            {section.label}
-                            {section.required && (
-                              <Badge variant="secondary" className="text-xs">Required</Badge>
-                            )}
-                          </label>
-                          <p className="text-xs text-muted-foreground">
-                            {section.description}
-                          </p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-
-                <div>
-                  <Label className="text-base font-medium">Analysis Depth</Label>
-                  <RadioGroup
-                    value={analysisDepth}
-                    onValueChange={setAnalysisDepth}
-                    className="mt-3"
-                  >
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="standard" id="standard" />
-                      <Label htmlFor="standard" className="flex-1">
-                        <div>
-                          <div className="font-medium">Standard Analysis</div>
-                          <div className="text-sm text-muted-foreground">
-                            Essential metrics and analysis (3-4 minutes)
-                          </div>
-                        </div>
-                      </Label>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <RadioGroupItem value="comprehensive" id="comprehensive" />
-                      <Label htmlFor="comprehensive" className="flex-1">
-                        <div>
-                          <div className="font-medium">Comprehensive Analysis</div>
-                          <div className="text-sm text-muted-foreground">
-                            Deep-dive with additional insights (5-7 minutes)
-                          </div>
-                        </div>
-                      </Label>
-                    </div>
-                  </RadioGroup>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-
-          {/* Stock Information */}
-          <div className="space-y-6">
-            <Card>
-              <CardHeader>
-                <CardTitle>Stock Information</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid gap-2">
-                  <Label className="text-sm text-muted-foreground">Symbol</Label>
-                  <div className="text-lg font-semibold">{mockStock.symbol}</div>
-                </div>
-                <div className="grid gap-2">
-                  <Label className="text-sm text-muted-foreground">Company Name</Label>
-                  <div>{mockStock.name}</div>
-                </div>
-                <div className="flex gap-2 flex-wrap">
-                  <Badge variant="secondary">{mockStock.sector}</Badge>
-                  <Badge variant="outline">{mockStock.exchange}</Badge>
-                  <Badge variant="outline">{mockStock.country}</Badge>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Card>
-              <CardHeader>
-                <CardTitle>Analysis Summary</CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2 text-sm">
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Selected Sections:</span>
-                    <span>{selectedSections.length} of {analysisSections.length}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Analysis Depth:</span>
-                    <span className="capitalize">{analysisDepth}</span>
-                  </div>
-                  <div className="flex justify-between">
-                    <span className="text-muted-foreground">Estimated Time:</span>
-                    <span>{analysisDepth === 'comprehensive' ? '5-7' : '3-4'} minutes</span>
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-
-            <Button 
-              className="w-full" 
-              size="lg"
-              onClick={startAnalysis}
-              disabled={selectedSections.length === 0}
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Start Analysis
-            </Button>
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl flex items-center justify-center shadow-lg">
+              <Target className="w-6 h-6 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">{mockStock.symbol} Analysis</h1>
+              <p className="text-gray-600">{mockStock.name}</p>
+            </div>
           </div>
         </div>
-      ) : (
-        <ProgressIndicator
-          currentStep={currentStep}
-          totalSteps={analysisSteps.length}
-          stepLabel={analysisSteps[currentStep - 1]}
-          progress={progress}
-        />
-      )}
+
+        {!isAnalyzing ? (
+          <div className="grid gap-8 lg:grid-cols-2">
+            {/* Configuration Panel */}
+            <div className="space-y-6">
+              <ReportConfig
+                onConfigChange={handleConfigChange}
+                onStartAnalysis={handleStartAnalysis}
+              />
+            </div>
+
+            {/* Stock Information & Summary */}
+            <div className="space-y-6">
+              <Card className="border-0 shadow-lg">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-gray-900">Stock Information</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid gap-2">
+                    <Label className="text-sm font-medium text-gray-700">Symbol</Label>
+                    <div className="text-lg font-bold text-gray-900">{mockStock.symbol}</div>
+                  </div>
+                  <div className="grid gap-2">
+                    <Label className="text-sm font-medium text-gray-700">Company Name</Label>
+                    <div className="text-gray-900">{mockStock.name}</div>
+                  </div>
+                  <div className="flex gap-2 flex-wrap">
+                    <Badge variant="secondary" className="bg-gray-50 text-gray-700 border-gray-200">
+                      {mockStock.sector}
+                    </Badge>
+                    <Badge variant="outline" className="border-gray-300 text-gray-600">
+                      {mockStock.exchange}
+                    </Badge>
+                    <Badge variant="outline" className="border-gray-300 text-gray-600">
+                      {mockStock.country}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-0 shadow-lg bg-gradient-to-br from-blue-50 to-indigo-50">
+                <CardHeader>
+                  <CardTitle className="text-xl font-bold text-gray-900">Analysis Summary</CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                      <span className="text-gray-700 font-medium">Selected Sections:</span>
+                      <span className="font-bold text-gray-900">{selectedSections.length} of {analysisSections.length}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                      <span className="text-gray-700 font-medium">Analysis Depth:</span>
+                      <span className="font-bold text-gray-900 capitalize">{analysisDepth}</span>
+                    </div>
+                    <div className="flex items-center justify-between p-3 bg-white rounded-lg">
+                      <span className="text-gray-700 font-medium">Estimated Time:</span>
+                      <span className="font-bold text-gray-900">{analysisDepth === 'comprehensive' ? '5-7' : '3-4'} minutes</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Button 
+                className="w-full bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 text-white py-4 text-lg font-semibold shadow-lg hover:shadow-xl transition-all duration-200" 
+                size="lg"
+                onClick={startAnalysis}
+                disabled={selectedSections.length === 0}
+              >
+                <Zap className="w-5 h-5 mr-2" />
+                Start Analysis
+              </Button>
+            </div>
+          </div>
+        ) : (
+          <div className="max-w-2xl mx-auto">
+            <ProgressIndicator
+              currentStep={currentStep}
+              totalSteps={analysisSteps.length}
+              stepLabel={analysisSteps[currentStep - 1]}
+              progress={progress}
+            />
+          </div>
+        )}
       </div>
     </Layout>
   );

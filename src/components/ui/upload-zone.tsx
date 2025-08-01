@@ -1,4 +1,4 @@
-import { Upload, FileSpreadsheet, X } from "lucide-react";
+import { Upload, FileSpreadsheet, X, CheckCircle, Loader2 } from "lucide-react";
 import { Card } from "./card";
 import { Button } from "./button";
 import { cn } from "@/lib/utils";
@@ -62,9 +62,11 @@ const UploadZone = ({ onFileUpload, isUploading = false, className }: UploadZone
   return (
     <Card 
       className={cn(
-        "border-2 border-dashed transition-colors cursor-pointer",
-        isDragOver ? "border-primary bg-muted/50" : "border-muted-foreground/25",
-        isUploading && "opacity-50 cursor-not-allowed",
+        "border-2 border-dashed transition-all duration-300 cursor-pointer group",
+        isDragOver 
+          ? "border-blue-400 bg-blue-50 scale-105 shadow-lg" 
+          : "border-gray-300 hover:border-blue-400 hover:bg-gray-50",
+        isUploading && "opacity-75 cursor-not-allowed",
         className
       )}
       onDragOver={handleDragOver}
@@ -84,41 +86,68 @@ const UploadZone = ({ onFileUpload, isUploading = false, className }: UploadZone
         
         {selectedFile ? (
           <div className="space-y-4">
-            <div className="flex items-center justify-center gap-3">
-              <FileSpreadsheet className="w-8 h-8 text-success" />
+            <div className="flex items-center justify-center gap-4">
+              {isUploading ? (
+                <div className="w-12 h-12 bg-blue-100 rounded-full flex items-center justify-center">
+                  <Loader2 className="w-6 h-6 text-blue-600 animate-spin" />
+                </div>
+              ) : (
+                <div className="w-12 h-12 bg-green-100 rounded-full flex items-center justify-center">
+                  <CheckCircle className="w-6 h-6 text-green-600" />
+                </div>
+              )}
               <div className="text-left">
-                <p className="font-medium">{selectedFile.name}</p>
-                <p className="text-sm text-muted-foreground">
+                <p className="font-semibold text-gray-900">{selectedFile.name}</p>
+                <p className="text-sm text-gray-500">
                   {(selectedFile.size / 1024 / 1024).toFixed(2)} MB
                 </p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  handleRemoveFile();
-                }}
-                disabled={isUploading}
-              >
-                <X className="w-4 h-4" />
-              </Button>
+              {!isUploading && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleRemoveFile();
+                  }}
+                  className="border-gray-300 hover:bg-red-50 hover:border-red-300 hover:text-red-600 transition-colors"
+                >
+                  <X className="w-4 h-4" />
+                </Button>
+              )}
             </div>
             {isUploading && (
-              <p className="text-sm text-muted-foreground">Processing file...</p>
+              <div className="space-y-2">
+                <p className="text-sm text-blue-600 font-medium">Processing file...</p>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full animate-pulse" style={{ width: '60%' }}></div>
+                </div>
+              </div>
             )}
           </div>
         ) : (
-          <div className="space-y-4">
-            <Upload className="w-12 h-12 text-muted-foreground mx-auto" />
-            <div>
-              <h3 className="font-medium">Upload Stock List</h3>
-              <p className="text-sm text-muted-foreground mt-1">
+          <div className="space-y-6">
+            <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-lg group-hover:scale-110 transition-transform duration-200">
+              <Upload className="w-8 h-8 text-white" />
+            </div>
+            <div className="space-y-2">
+              <h3 className="text-xl font-bold text-gray-900">Upload Stock List</h3>
+              <p className="text-gray-600">
                 Drag and drop your Excel file here, or click to browse
               </p>
-              <p className="text-xs text-muted-foreground mt-2">
+              <p className="text-sm text-gray-500">
                 Supports .xlsx and .xls files
               </p>
+            </div>
+            <div className="flex items-center justify-center gap-4 text-xs text-gray-400">
+              <div className="flex items-center gap-1">
+                <FileSpreadsheet className="w-4 h-4" />
+                Excel Files
+              </div>
+              <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+              <div>Drag & Drop</div>
+              <div className="w-1 h-1 bg-gray-300 rounded-full"></div>
+              <div>Secure Upload</div>
             </div>
           </div>
         )}
