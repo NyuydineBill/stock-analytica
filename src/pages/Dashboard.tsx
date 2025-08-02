@@ -2,9 +2,10 @@ import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Checkbox } from "@/components/ui/checkbox";
 import UploadZone from "@/components/ui/upload-zone";
 import StockCard from "@/components/ui/stock-card";
-import { FileText, TrendingUp, BarChart3, Upload, Sparkles, Target, Zap, DollarSign, TrendingDown } from "lucide-react";
+import { FileText, TrendingUp, BarChart3, Upload, Sparkles, Target, Zap, DollarSign, TrendingDown, Calendar } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { mockStocks, mockPortfolio, sectorPerformance } from "@/data/mockData";
 import ExcelUpload from "@/components/ui/excel-upload";
@@ -25,6 +26,7 @@ interface Stock {
 const Dashboard = () => {
   const navigate = useNavigate();
   const [uploadedStocks, setUploadedStocks] = useState<Stock[]>([]);
+  const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
   const [isUploading, setIsUploading] = useState(false);
   const [showExcelUpload, setShowExcelUpload] = useState(false);
 
@@ -63,6 +65,37 @@ const Dashboard = () => {
       priceChangePercent: 0
     })));
     setShowExcelUpload(false);
+  };
+
+  const handleStockSelection = (symbol: string, checked: boolean) => {
+    if (checked) {
+      setSelectedStocks([...selectedStocks, symbol]);
+    } else {
+      setSelectedStocks(selectedStocks.filter(s => s !== symbol));
+    }
+  };
+
+  const handleSelectAll = () => {
+    if (selectedStocks.length === uploadedStocks.length) {
+      setSelectedStocks([]);
+    } else {
+      setSelectedStocks(uploadedStocks.map(stock => stock.symbol));
+    }
+  };
+
+  const handleBatchAnalyze = () => {
+    if (selectedStocks.length === 1) {
+      // Single stock - navigate to regular analysis
+      navigate(`/analyze/${selectedStocks[0]}`);
+    } else if (selectedStocks.length > 1) {
+      // Multiple stocks - navigate to batch analysis
+      navigate('/batch-analyze', { 
+        state: { 
+          selectedStocks: selectedStocks,
+          stocksData: uploadedStocks.filter(stock => selectedStocks.includes(stock.symbol))
+        }
+      });
+    }
   };
 
   const stats = [
@@ -251,9 +284,35 @@ const Dashboard = () => {
                   priceChangePercent={stock.priceChangePercent}
                   onAnalyze={() => navigate(`/analyze/${stock.symbol}`)}
                   onViewReport={() => navigate(`/report/${stock.symbol}`)}
+                  onSelect={() => handleStockSelection(stock.symbol, !selectedStocks.includes(stock.symbol))}
+                  isSelected={selectedStocks.includes(stock.symbol)}
                 />
               </div>
             ))}
+          </div>
+
+          {/* Batch Selection Controls */}
+          <div className="flex items-center justify-between mt-6 p-4 bg-gray-50 rounded-lg">
+            <div className="flex items-center gap-3">
+              <Checkbox
+                id="select-all"
+                checked={selectedStocks.length === uploadedStocks.length && uploadedStocks.length > 0}
+                onCheckedChange={handleSelectAll}
+              />
+              <label htmlFor="select-all" className="text-sm font-medium text-gray-700">
+                Select All ({selectedStocks.length} of {uploadedStocks.length} selected)
+              </label>
+            </div>
+            
+            {selectedStocks.length > 0 && (
+              <Button 
+                onClick={handleBatchAnalyze}
+                className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200"
+              >
+                <BarChart3 className="w-4 h-4 mr-2" />
+                {selectedStocks.length === 1 ? 'Analyze Stock' : `Batch Analyze (${selectedStocks.length})`}
+              </Button>
+            )}
           </div>
         </div>
       )}
@@ -269,7 +328,17 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="flex flex-wrap gap-4">
-              <Button className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200">
+              <Button 
+                onClick={() => {
+                  if (selectedStocks.length > 0) {
+                    handleBatchAnalyze();
+                  } else {
+                    // Select all stocks for batch analysis
+                    setSelectedStocks(uploadedStocks.map(stock => stock.symbol));
+                  }
+                }}
+                className="bg-blue-600 hover:bg-blue-700 shadow-md hover:shadow-lg transition-all duration-200"
+              >
                 <FileText className="w-4 h-4 mr-2" />
                 Generate Batch Reports
               </Button>

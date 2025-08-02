@@ -40,38 +40,32 @@ const StockAnalysis = () => {
     {
       id: 'overview',
       label: 'Company Overview',
-      description: 'Business analysis, SWOT, and Porter\'s Five Forces',
+      description: 'Company description, business history, management changes, revenue breakdown, SWOT & Porter\'s 5 Forces',
       required: true
     },
     {
       id: 'sector',
-      label: 'Sector Review',
-      description: 'Industry trends and regulatory environment',
+      label: 'Products & Sector Review',
+      description: 'Industry tailwinds, regulatory environment, political & economic factors, sector trends',
       required: false
     },
     {
       id: 'valuation',
-      label: 'Valuation Analysis',
-      description: 'Price targets and peer comparison',
+      label: 'Valuation Review',
+      description: 'Analyst price targets, relative value vs peers, key valuation drivers',
       required: false
     },
     {
       id: 'sentiment',
-      label: 'Sentiment Analysis',
-      description: 'Analyst trends and market sentiment',
+      label: 'Sentiment Guidance',
+      description: 'Analyst trend revisions, sentiment analysis, consensus estimates',
       required: false
     },
     {
       id: 'thesis',
       label: 'Investment Thesis',
-      description: 'Bull, bear, and base case scenarios',
+      description: 'Bull case, bear case, and scenario probability assessment',
       required: true
-    },
-    {
-      id: 'projections',
-      label: 'Financial Projections',
-      description: 'Revenue and earnings forecasts',
-      required: false
     }
   ];
 
@@ -244,7 +238,7 @@ const StockAnalysis = () => {
             <ProgressIndicator
               currentStep={currentStep}
               totalSteps={analysisSteps.length}
-              stepLabel={analysisSteps[currentStep - 1]}
+              stepLabel={analysisSteps[currentStep - 1] || `Step ${currentStep}`}
               progress={progress}
             />
           </div>

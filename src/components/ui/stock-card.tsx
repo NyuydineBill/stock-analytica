@@ -1,6 +1,7 @@
 import { Card, CardContent, CardHeader } from "./card";
 import { Badge } from "./badge";
 import { Button } from "./button";
+import { Checkbox } from "./checkbox";
 import { FileText, TrendingUp, ExternalLink } from "lucide-react";
 import RatingBadge from "./rating-badge";
 
@@ -17,6 +18,8 @@ interface StockCardProps {
   priceChangePercent?: number;
   onAnalyze?: () => void;
   onViewReport?: () => void;
+  onSelect?: () => void;
+  isSelected?: boolean;
   className?: string;
 }
 
@@ -33,15 +36,26 @@ const StockCard = ({
   priceChangePercent,
   onAnalyze,
   onViewReport,
+  onSelect,
+  isSelected = false,
   className
 }: StockCardProps) => {
   return (
-    <Card className={`group hover:shadow-xl transition-all duration-300 border-0 bg-white shadow-md hover:scale-105 ${className}`}>
+    <Card className={`group hover:shadow-xl transition-all duration-300 border-0 bg-white shadow-md hover:scale-105 ${isSelected ? 'ring-2 ring-blue-500 bg-blue-50' : ''} ${className}`}>
       <CardHeader className="pb-3">
         <div className="flex items-start justify-between">
-          <div className="space-y-1">
-            <h3 className="font-bold text-xl text-gray-900 group-hover:text-blue-600 transition-colors">{symbol}</h3>
-            <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{name}</p>
+          <div className="flex items-start gap-3">
+            {onSelect && (
+              <Checkbox
+                checked={isSelected}
+                onCheckedChange={onSelect}
+                className="mt-1"
+              />
+            )}
+            <div className="space-y-1">
+              <h3 className="font-bold text-xl text-gray-900 group-hover:text-blue-600 transition-colors">{symbol}</h3>
+              <p className="text-sm text-gray-600 line-clamp-2 leading-relaxed">{name}</p>
+            </div>
           </div>
           {rating !== undefined && (
             <RatingBadge rating={rating} size="sm" />

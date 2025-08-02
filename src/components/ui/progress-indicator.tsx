@@ -19,7 +19,7 @@ const ProgressIndicator = ({ currentStep, totalSteps, stepLabel, progress }: Pro
             <Loader2 className="w-8 h-8 text-white animate-spin" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-900">Generating your report</h2>
+            <h2 className="text-2xl font-bold text-gray-900">Generating your reports</h2>
             <p className="text-gray-600 mt-2">AI is analyzing {stepLabel.toLowerCase()}</p>
           </div>
         </div>
