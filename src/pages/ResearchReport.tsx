@@ -11,6 +11,10 @@ import { ArrowLeft, Download, Star, ChevronRight, TrendingUp, TrendingDown, Minu
 import { useNavigate, useParams } from "react-router-dom";
 import Layout from "@/components/layout/Layout";
 import FinancialChart from "@/components/ui/financial-chart";
+import StockPriceChart from "@/components/ui/stock-price-chart";
+import NewsAnalysis from "@/components/ui/news-analysis";
+import ValuationAnalysis from "@/components/ui/valuation-analysis";
+import ChartHighlighting from "@/components/ui/chart-highlighting";
 import { mockAnalysisResults } from "@/data/mockData";
 import StockRating from "@/components/ui/stock-rating";
 import PDFExport from "@/components/ui/pdf-export";
@@ -261,6 +265,19 @@ const ResearchReport = () => {
 
             {/* Report Content */}
             <div className="lg:col-span-3">
+              {/* Stock Price Chart */}
+              {analysisData && (
+                <div className="mb-6">
+                  <StockPriceChart
+                    symbol={stockData.symbol}
+                    name={stockData.name}
+                    currentPrice={analysisData.currentPrice}
+                    priceChange={analysisData.priceChange}
+                    priceChangePercent={analysisData.priceChangePercent}
+                  />
+                </div>
+              )}
+
               {/* Key Metrics Summary */}
               {analysisData && (
                 <Card className="mb-6">
@@ -269,8 +286,8 @@ const ResearchReport = () => {
                   </CardHeader>
                   <CardContent>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                                    <div className="text-center p-3 bg-gray-50 rounded-lg">
-                <div className="text-2xl font-bold text-gray-600">
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-600">
                           ${analysisData.financialMetrics.revenue.current}B
                         </div>
                         <div className="text-sm text-gray-600">Revenue</div>
@@ -278,8 +295,8 @@ const ResearchReport = () => {
                           {analysisData.financialMetrics.revenue.growth}% YoY
                         </div>
                       </div>
-                                              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-2xl font-bold text-gray-600">
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-600">
                           {analysisData.financialMetrics.profitMargin.current}%
                         </div>
                         <div className="text-sm text-gray-600">Profit Margin</div>
@@ -287,15 +304,15 @@ const ResearchReport = () => {
                           vs {analysisData.financialMetrics.profitMargin.industry}% industry
                         </div>
                       </div>
-                                              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-2xl font-bold text-gray-600">
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-600">
                           {analysisData.financialMetrics.roe}%
                         </div>
                         <div className="text-sm text-gray-600">ROE</div>
                         <div className="text-xs text-gray-500">Return on Equity</div>
                       </div>
-                                              <div className="text-center p-3 bg-gray-50 rounded-lg">
-                          <div className="text-2xl font-bold text-gray-600">
+                      <div className="text-center p-3 bg-gray-50 rounded-lg">
+                        <div className="text-2xl font-bold text-gray-600">
                           {analysisData.analystConsensus.buy}
                         </div>
                         <div className="text-sm text-gray-600">Buy Ratings</div>
@@ -306,6 +323,37 @@ const ResearchReport = () => {
                     </div>
                   </CardContent>
                 </Card>
+              )}
+
+              {/* Valuation Analysis */}
+              {analysisData && (
+                <div className="mb-6">
+                  <ValuationAnalysis
+                    symbol={stockData.symbol}
+                    name={stockData.name}
+                    currentPrice={analysisData.currentPrice}
+                    targetPrice={analysisData.targetPrice}
+                  />
+                </div>
+              )}
+
+              {/* News Analysis */}
+              {analysisData && (
+                <div className="mb-6">
+                  <NewsAnalysis
+                    symbol={stockData.symbol}
+                    name={stockData.name}
+                  />
+                </div>
+              )}
+
+              {/* Chart Highlighting (Future Feature) */}
+              {analysisData && (
+                <div className="mb-6">
+                  <ChartHighlighting
+                    symbol={stockData.symbol}
+                  />
+                </div>
               )}
 
               <Card>
