@@ -304,6 +304,15 @@ const Portfolio = () => {
               <FileText className="w-4 h-4 mr-2" />
               Export Reports
             </Button>
+            <Button 
+              variant="outline" 
+              size="sm" 
+              onClick={() => navigate('/reports')}
+              className="border-blue-300 text-blue-700 hover:bg-blue-50"
+            >
+              <FileText className="w-4 h-4 mr-2" />
+              View All Reports
+            </Button>
           </div>
         </div>
 

@@ -13,6 +13,7 @@ import { useNavigate, useLocation } from "react-router-dom";
 import ReportConfig, { ReportConfiguration } from "@/components/ui/report-config";
 import StockRating from "@/components/ui/stock-rating";
 import PDFExport from "@/components/ui/pdf-export";
+import { bulkConfigure, getBulkProgress, mapSectionsToConfig } from "@/services/reports";
 
 interface AnalysisStep {
   id: string;
@@ -104,42 +105,65 @@ const BatchAnalysis = () => {
     }
   };
 
-  const startAnalysis = () => {
-    setIsAnalyzing(true);
-    setCurrentStep(1);
-    setProgress(0);
+  const startAnalysis = async () => {
+    try {
+      setIsAnalyzing(true);
+      setCurrentStep(1);
+      setProgress(0);
 
-    // Simulate analysis progress for multiple stocks
-    const totalSteps = selectedStocks.length * 5; // 5 steps per stock
-    let currentStepCount = 0;
+      const config = mapSectionsToConfig(selectedSections);
 
-    const interval = setInterval(() => {
-      currentStepCount++;
-      const newProgress = (currentStepCount / totalSteps) * 100;
-      
-      setProgress(newProgress);
-      
-      if (newProgress >= 100) {
-        clearInterval(interval);
-        setIsAnalyzing(false);
-        // Navigate to the batch research report page
-        setTimeout(() => {
-          navigate('/batch-report', { 
-            state: { 
-              selectedStocks: selectedStocks,
-              stocksData: stocksData,
-              analysisSections: selectedSections,
-              analysisDepth: analysisDepth
-            }
-          });
-        }, 1000);
-      }
-      
-      // Update current step every 5 steps (one stock completed)
-      if (currentStepCount % 5 === 0) {
-        setCurrentStep(prev => prev + 1);
-      }
-    }, 1000);
+      const bulk = await bulkConfigure({
+        stock_symbols: selectedStocks,
+        include_company_overview: config.include_company_overview,
+        include_sector_review: config.include_sector_review,
+        include_valuation_analysis: config.include_valuation_analysis,
+        include_sentiment_analysis: config.include_sentiment_analysis,
+        include_investment_thesis: config.include_investment_thesis,
+      });
+
+      const batchId = bulk.batch_id;
+
+      const poll = async () => {
+        try {
+          const res = await getBulkProgress(batchId);
+          setProgress(res.progress);
+          const completed = res.reports.filter(r => r.status === 'completed').length;
+          setCurrentStep(completed + 1);
+          if (res.progress < 100) {
+            setTimeout(poll, 2000);
+          } else {
+            setIsAnalyzing(false);
+            navigate('/batch-report', {
+              state: {
+                selectedStocks: selectedStocks,
+                stocksData: stocksData,
+                analysisSections: selectedSections,
+                analysisDepth: analysisDepth,
+                batchId: batchId,
+                generatedReports: res.reports.map(r => ({
+                  id: String((r as any).id ?? (r as any).report_id ?? ''),
+                  stock_symbol: r.stock_symbol,
+                  stock_name: stocksData.find(s => s.symbol === r.stock_symbol)?.name || r.stock_symbol,
+                  status: r.status as any,
+                  progress: r.progress,
+                  current_step: '',
+                  created_at: new Date().toISOString(),
+                })),
+              }
+            });
+          }
+        } catch (e) {
+          console.error('Polling error', e);
+          setTimeout(poll, 3000);
+        }
+      };
+
+      poll();
+    } catch (error) {
+      console.error('Failed to start batch analysis', error);
+      setIsAnalyzing(false);
+    }
   };
 
   const handleConfigChange = (config: ReportConfiguration) => {

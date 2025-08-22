@@ -9,6 +9,7 @@ import { FileText, TrendingUp, BarChart3, Upload, Sparkles, Target, Zap, DollarS
 import { useNavigate } from "react-router-dom";
 import { mockStocks, mockPortfolio, sectorPerformance } from "@/data/mockData";
 import ExcelUpload from "@/components/ui/excel-upload";
+import { useDashboard } from "@/hooks/useDashboard";
 
 interface Stock {
   symbol: string;
@@ -25,62 +26,41 @@ interface Stock {
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const [uploadedStocks, setUploadedStocks] = useState<Stock[]>([]);
-  const [selectedStocks, setSelectedStocks] = useState<string[]>([]);
-  const [isUploading, setIsUploading] = useState(false);
   const [showExcelUpload, setShowExcelUpload] = useState(false);
 
-  const handleFileUpload = async (file: File) => {
-    setIsUploading(true);
-    
-    // Simulate file processing
-    setTimeout(() => {
-      setUploadedStocks(mockStocks.map(stock => ({
-        symbol: stock.symbol,
-        name: stock.name,
-        sector: stock.sector,
-        exchange: stock.exchange,
-        country: stock.country,
-        rating: stock.rating,
-        hasReport: stock.hasReport,
-        currentPrice: stock.currentPrice,
-        priceChange: stock.priceChange,
-        priceChangePercent: stock.priceChangePercent
-      })));
-      setIsUploading(false);
-    }, 2000);
-  };
+  // Use the new dashboard hook
+  const {
+    uploadedStocks,
+    selectedStocks,
+    isUploading,
+    stats,
+    sectorPerformance: apiSectorPerformance,
+    handleFileUpload,
+    handleStockSelection,
+    handleSelectAll,
+    hasReport,
+    getStockRating,
+    setUploadedStocks,
+    setSelectedStocks,
+  } = useDashboard();
 
   const handleExcelUploadComplete = (stocks: any[]) => {
     setUploadedStocks(stocks.map(stock => ({
+      id: Math.random(), // Temporary ID
       symbol: stock.symbol,
       name: stock.name,
       sector: stock.sector,
       exchange: stock.exchange,
       country: stock.country,
-      rating: 0,
-      hasReport: false,
-      currentPrice: stock.price,
-      priceChange: 0,
-      priceChangePercent: 0
+      current_price: stock.price,
+      price_change: 0,
+      price_change_percent: 0,
+      market_cap: "0",
+      pe_ratio: null,
+      dividend_yield: null,
+      volume: 0,
     })));
     setShowExcelUpload(false);
-  };
-
-  const handleStockSelection = (symbol: string, checked: boolean) => {
-    if (checked) {
-      setSelectedStocks([...selectedStocks, symbol]);
-    } else {
-      setSelectedStocks(selectedStocks.filter(s => s !== symbol));
-    }
-  };
-
-  const handleSelectAll = () => {
-    if (selectedStocks.length === uploadedStocks.length) {
-      setSelectedStocks([]);
-    } else {
-      setSelectedStocks(uploadedStocks.map(stock => stock.symbol));
-    }
   };
 
   const handleBatchAnalyze = () => {
@@ -98,32 +78,8 @@ const Dashboard = () => {
     }
   };
 
-  const stats = [
-    {
-      title: "Total Stocks",
-      value: uploadedStocks.length.toString(),
-      description: "Uploaded for analysis",
-      icon: BarChart3
-    },
-    {
-      title: "Generated Reports",
-      value: uploadedStocks.filter(stock => stock.hasReport).length.toString(),
-      description: "Complete research reports",
-      icon: FileText
-    },
-    {
-      title: "Portfolio Value",
-      value: `$${mockPortfolio.totalValue.toLocaleString()}`,
-      description: `Total return: ${mockPortfolio.totalReturnPercent}%`,
-      icon: TrendingUp
-    },
-    {
-      title: "Market Performance",
-      value: "+12.5%",
-      description: "S&P 500 YTD return",
-      icon: DollarSign
-    }
-  ];
+  // Use API data if available, fallback to mock data
+  const sectorData = apiSectorPerformance.length > 0 ? apiSectorPerformance : sectorPerformance;
 
   return (
     <div className="space-y-8">
@@ -149,7 +105,10 @@ const Dashboard = () => {
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-700">{stat.title}</CardTitle>
               <div className="p-2 rounded-lg bg-blue-600 shadow-md group-hover:scale-110 transition-transform duration-200">
-                <stat.icon className="h-4 w-4 text-white" />
+                {index === 0 && <BarChart3 className="h-4 w-4 text-white" />}
+                {index === 1 && <FileText className="h-4 w-4 text-white" />}
+                {index === 2 && <TrendingUp className="h-4 w-4 text-white" />}
+                {index === 3 && <DollarSign className="h-4 w-4 text-white" />}
               </div>
             </CardHeader>
             <CardContent>
@@ -171,7 +130,7 @@ const Dashboard = () => {
           </CardHeader>
           <CardContent>
             <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
-              {sectorPerformance.map((sector, index) => (
+              {sectorData.map((sector, index) => (
                 <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
                   <div>
                     <h4 className="font-semibold text-gray-900">{sector.sector}</h4>
@@ -277,11 +236,11 @@ const Dashboard = () => {
                   sector={stock.sector}
                   exchange={stock.exchange}
                   country={stock.country}
-                  rating={stock.rating}
-                  hasReport={stock.hasReport}
-                  currentPrice={stock.currentPrice}
-                  priceChange={stock.priceChange}
-                  priceChangePercent={stock.priceChangePercent}
+                  rating={getStockRating(stock.symbol)}
+                  hasReport={hasReport(stock.symbol)}
+                  currentPrice={stock.current_price}
+                  priceChange={stock.price_change}
+                  priceChangePercent={stock.price_change_percent}
                   onAnalyze={() => navigate(`/analyze/${stock.symbol}`)}
                   onViewReport={() => navigate(`/report/${stock.symbol}`)}
                   onSelect={() => handleStockSelection(stock.symbol, !selectedStocks.includes(stock.symbol))}
@@ -365,6 +324,14 @@ const Dashboard = () => {
               >
                 <Calendar className="w-4 h-4 mr-2" />
                 Earnings Analysis
+              </Button>
+              <Button 
+                variant="outline"
+                onClick={() => navigate('/reports')}
+                className="border-blue-300 text-blue-700 hover:bg-blue-50 hover:shadow-md transition-all duration-200"
+              >
+                <FileText className="w-4 h-4 mr-2" />
+                View All Reports
               </Button>
             </div>
           </CardContent>

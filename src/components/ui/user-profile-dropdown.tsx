@@ -3,6 +3,9 @@ import { User, Settings, LogOut, Shield, CreditCard, HelpCircle, Bell, BarChart3
 import { Button } from './button';
 import { Badge } from './badge';
 import { Separator } from './separator';
+import { useAuth } from '@/hooks/useAuth';
+import { useNavigate } from 'react-router-dom';
+import { useToast } from '@/hooks/use-toast';
 
 interface UserProfileDropdownProps {
   isOpen: boolean;
@@ -15,13 +18,18 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
   onClose,
   onNavigate
 }) => {
-  const user = {
-    name: 'John Smith',
-    email: 'john.smith@example.com',
-    role: 'Senior Analyst',
-    avatar: null,
-    plan: 'Professional',
-    lastLogin: '2 hours ago'
+  const { user, logout } = useAuth();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/login');
+    onClose();
   };
 
   const menuItems = [
@@ -75,72 +83,57 @@ const UserProfileDropdown: React.FC<UserProfileDropdownProps> = ({
           </div>
           <div className="flex-1 min-w-0">
             <h3 className="text-sm font-semibold text-gray-900 truncate">
-              {user.name}
+              {user?.username || 'User'}
             </h3>
             <p className="text-xs text-gray-500 truncate">
-              {user.email}
+              {user?.email || 'user@example.com'}
             </p>
             <div className="flex items-center gap-2 mt-1">
               <Badge variant="outline" className="text-xs">
-                {user.role}
+                {user?.profile?.subscription_type || 'Free'}
               </Badge>
               <Badge variant="outline" className="text-xs bg-green-50 text-green-700 border-green-200">
-                {user.plan}
+                {user?.profile?.api_calls_remaining || 0} calls left
               </Badge>
             </div>
           </div>
         </div>
         <p className="text-xs text-gray-500 mt-2">
-          Last login: {user.lastLogin}
+          Last login: {user?.last_login ? new Date(user.last_login).toLocaleDateString() : 'Unknown'}
         </p>
       </div>
 
       {/* Menu Items */}
       <div className="py-2">
         {menuItems.map((item, index) => (
-          <div key={index}>
-            <Button
-              variant="ghost"
-              className="w-full justify-start px-4 py-3 h-auto text-left hover:bg-gray-50"
-              onClick={() => {
-                item.onClick();
-                onClose();
-              }}
-            >
-              <div className="flex items-center gap-3">
-                <div className="text-gray-600">
-                  {item.icon}
-                </div>
-                <div className="flex-1">
-                  <div className="text-sm font-medium text-gray-900">
-                    {item.label}
-                  </div>
-                  <div className="text-xs text-gray-500">
-                    {item.description}
-                  </div>
-                </div>
-              </div>
-            </Button>
-            {index < menuItems.length - 1 && (
-              <Separator className="mx-4" />
-            )}
-          </div>
+          <button
+            key={index}
+            onClick={item.onClick}
+            className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center gap-3 transition-colors"
+          >
+            <div className="text-gray-400">
+              {item.icon}
+            </div>
+            <div className="flex-1">
+              <div className="text-sm font-medium text-gray-900">{item.label}</div>
+              <div className="text-xs text-gray-500">{item.description}</div>
+            </div>
+          </button>
         ))}
       </div>
 
-      {/* Footer */}
-      <div className="p-3 border-t border-gray-200 bg-gray-50">
-        <Button
-          variant="ghost"
-          className="w-full justify-start text-red-600 hover:text-red-700 hover:bg-red-50"
-          onClick={() => {
-            console.log('Logout');
-            onClose();
-          }}
+      {/* Logout Section */}
+      <div className="border-t border-gray-200">
+        <button
+          onClick={handleLogout}
+          className="w-full px-4 py-3 text-left hover:bg-red-50 flex items-center gap-3 transition-colors text-red-600"
         >
-          <LogOut className="h-4 w-4 mr-3" />
-          Sign out
-        </Button>
+          <LogOut className="h-4 w-4" />
+          <div>
+            <div className="text-sm font-medium">Logout</div>
+            <div className="text-xs text-red-500">Sign out of your account</div>
+          </div>
+        </button>
       </div>
     </div>
   );

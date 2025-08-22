@@ -136,10 +136,9 @@ const StockPriceChart: React.FC<StockPriceChartProps> = ({
             <p className="text-gray-600">{name}</p>
           </div>
           <div className="text-right">
-            <div className="text-2xl font-bold text-gray-900">${currentPrice.toFixed(2)}</div>
-            <div className={`flex items-center gap-1 text-sm ${changeColor}`}>
-              {changeIcon}
-              <span>{isPositive ? '+' : ''}{priceChange.toFixed(2)} ({isPositive ? '+' : ''}{priceChangePercent.toFixed(2)}%)</span>
+            <div className="text-2xl font-bold text-gray-900">${typeof currentPrice === 'string' ? parseFloat(currentPrice).toFixed(2) : currentPrice?.toFixed(2) || 'N/A'}</div>
+            <div className={`text-sm font-medium ${isPositive ? 'text-green-600' : 'text-red-600'}`}>
+              <span>{isPositive ? '+' : ''}{typeof priceChange === 'string' ? parseFloat(priceChange).toFixed(2) : priceChange?.toFixed(2) || '0.00'} ({isPositive ? '+' : ''}{typeof priceChangePercent === 'string' ? parseFloat(priceChangePercent).toFixed(2) : priceChangePercent?.toFixed(2) || '0.00'}%)</span>
             </div>
           </div>
         </div>

@@ -1,9 +1,11 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { Upload, FileSpreadsheet, X, CheckCircle, Loader2, AlertCircle } from 'lucide-react';
 import { Button } from './button';
 import { Card, CardContent, CardHeader, CardTitle } from './card';
 import { Badge } from './badge';
 import { Progress } from './progress';
+import { useUploadFileMutation, useGetUploadStatusQuery, useGetUploadStocksQuery } from '@/store/api';
+import { useToast } from '@/hooks/use-toast';
 
 interface StockData {
   symbol: string;
@@ -25,27 +27,23 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, onClose }) 
   const [isProcessing, setIsProcessing] = useState(false);
   const [progress, setProgress] = useState(0);
   const [uploadedFile, setUploadedFile] = useState<File | null>(null);
+  const [uploadId, setUploadId] = useState<string | null>(null);
   const [processedStocks, setProcessedStocks] = useState<StockData[]>([]);
   const [errors, setErrors] = useState<string[]>([]);
+  const [currentStep, setCurrentStep] = useState<string>('');
 
-  // Mock stock data that would be extracted from Excel
-  const mockExtractedStocks: StockData[] = [
-    { symbol: 'AAPL', name: 'Apple Inc.', sector: 'Technology', exchange: 'NASDAQ', country: 'USA', marketCap: '2.8T', price: 245.67 },
-    { symbol: 'MSFT', name: 'Microsoft Corporation', sector: 'Technology', exchange: 'NASDAQ', country: 'USA', marketCap: '2.9T', price: 388.47 },
-    { symbol: 'GOOGL', name: 'Alphabet Inc.', sector: 'Technology', exchange: 'NASDAQ', country: 'USA', marketCap: '1.8T', price: 142.56 },
-    { symbol: 'AMZN', name: 'Amazon.com Inc.', sector: 'Consumer Discretionary', exchange: 'NASDAQ', country: 'USA', marketCap: '1.6T', price: 155.63 },
-    { symbol: 'TSLA', name: 'Tesla Inc.', sector: 'Automotive', exchange: 'NASDAQ', country: 'USA', marketCap: '800B', price: 248.42 },
-    { symbol: 'NVDA', name: 'NVIDIA Corporation', sector: 'Technology', exchange: 'NASDAQ', country: 'USA', marketCap: '1.2T', price: 485.09 },
-    { symbol: 'META', name: 'Meta Platforms Inc.', sector: 'Technology', exchange: 'NASDAQ', country: 'USA', marketCap: '1.1T', price: 334.92 },
-    { symbol: 'BRK.A', name: 'Berkshire Hathaway Inc.', sector: 'Financial Services', exchange: 'NYSE', country: 'USA', marketCap: '800B', price: 548000 },
-    { symbol: 'JNJ', name: 'Johnson & Johnson', sector: 'Healthcare', exchange: 'NYSE', country: 'USA', marketCap: '400B', price: 158.76 },
-    { symbol: 'V', name: 'Visa Inc.', sector: 'Financial Services', exchange: 'NYSE', country: 'USA', marketCap: '500B', price: 245.33 },
-    { symbol: 'JPM', name: 'JPMorgan Chase & Co.', sector: 'Financial Services', exchange: 'NYSE', country: 'USA', marketCap: '450B', price: 158.92 },
-    { symbol: 'PG', name: 'Procter & Gamble Co.', sector: 'Consumer Staples', exchange: 'NYSE', country: 'USA', marketCap: '350B', price: 145.67 },
-    { symbol: 'UNH', name: 'UnitedHealth Group Inc.', sector: 'Healthcare', exchange: 'NYSE', country: 'USA', marketCap: '480B', price: 512.45 },
-    { symbol: 'HD', name: 'Home Depot Inc.', sector: 'Consumer Discretionary', exchange: 'NYSE', country: 'USA', marketCap: '320B', price: 312.78 },
-    { symbol: 'MA', name: 'Mastercard Inc.', sector: 'Financial Services', exchange: 'NYSE', country: 'USA', marketCap: '380B', price: 398.56 }
-  ];
+  const { toast } = useToast();
+  const [uploadFile] = useUploadFileMutation();
+
+  // RTK Query hooks for upload status and stocks
+  const { data: uploadStatus } = useGetUploadStatusQuery(uploadId!, { 
+    skip: !uploadId,
+    pollingInterval: uploadId ? 2000 : 0
+  });
+
+  const { data: uploadStocks } = useGetUploadStocksQuery(uploadId!, { 
+    skip: !uploadId || !uploadStatus?.processed 
+  });
 
   const handleDragOver = useCallback((e: React.DragEvent) => {
     e.preventDefault();
@@ -62,17 +60,27 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, onClose }) 
     setIsDragging(false);
     
     const files = Array.from(e.dataTransfer.files);
-    const excelFile = files.find(file => 
+    const spreadsheetFile = files.find(file => 
       file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
       file.type === 'application/vnd.ms-excel' ||
+      file.type === 'application/vnd.oasis.opendocument.spreadsheet' ||
+      file.type === 'text/csv' ||
       file.name.endsWith('.xlsx') ||
-      file.name.endsWith('.xls')
+      file.name.endsWith('.xls') ||
+      file.name.endsWith('.ods') ||
+      file.name.endsWith('.csv')
     );
 
-    if (excelFile) {
-      handleFileUpload(excelFile);
+    if (spreadsheetFile) {
+      handleFileUpload(spreadsheetFile);
+    } else {
+      toast({
+        title: "Invalid file type",
+        description: "Please upload a spreadsheet file (.xlsx, .xls, .ods, .csv)",
+        variant: "destructive"
+      });
     }
-  }, []);
+  }, [toast]);
 
   const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -86,34 +94,70 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, onClose }) 
     setIsProcessing(true);
     setProgress(0);
     setErrors([]);
+    setCurrentStep('Uploading file...');
 
-    // Simulate file processing steps
-    const steps = [
-      { name: 'Validating file format...', duration: 1000 },
-      { name: 'Extracting stock data...', duration: 2000 },
-      { name: 'Validating stock symbols...', duration: 1500 },
-      { name: 'Processing company information...', duration: 1000 },
-      { name: 'Finalizing data...', duration: 500 }
-    ];
+    try {
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('file', file);
 
-    for (let i = 0; i < steps.length; i++) {
-      const step = steps[i];
-      setProgress(((i + 1) / steps.length) * 100);
-      await new Promise(resolve => setTimeout(resolve, step.duration));
+      // Upload file using RTK Query
+      const uploadResult = await uploadFile(formData).unwrap();
+      setUploadId(uploadResult.id);
+      setCurrentStep('Processing stocks...');
+      setProgress(25);
+
+    } catch (error: any) {
+      console.error('Upload error:', error);
+      setIsProcessing(false);
+      setErrors([error.data?.detail || 'Upload failed']);
+      toast({
+        title: "Upload failed",
+        description: error.data?.detail || "Failed to upload file",
+        variant: "destructive"
+      });
     }
-
-    // Simulate some validation errors
-    const mockErrors = Math.random() > 0.7 ? ['Invalid symbol: INVALID', 'Missing sector for: TEST'] : [];
-    setErrors(mockErrors);
-
-    // Filter out any "invalid" stocks
-    const validStocks = mockExtractedStocks.filter(stock => 
-      !mockErrors.some(error => error.includes(stock.symbol))
-    );
-
-    setProcessedStocks(validStocks);
-    setIsProcessing(false);
   };
+
+  // Monitor upload processing with useEffect
+  useEffect(() => {
+    if (uploadStatus?.processed) {
+      setProgress(100);
+      setCurrentStep('Upload complete!');
+      
+      // Get processed stocks - handle both response formats
+      const stocks = uploadStocks?.results || uploadStocks?.stocks || uploadStocks || [];
+      if (Array.isArray(stocks)) {
+        const processedStocksData = stocks.map((stock: any) => ({
+          symbol: stock.symbol,
+          name: stock.name,
+          sector: stock.sector,
+          exchange: stock.exchange,
+          country: stock.country,
+          marketCap: stock.market_cap,
+          price: stock.current_price
+        }));
+        setProcessedStocks(processedStocksData);
+      }
+      
+      setIsProcessing(false);
+      toast({
+        title: "Upload successful",
+        description: `Processed ${uploadStatus.stock_count || uploadStatus.count || stocks.length} stocks`,
+      });
+    } else if (uploadStatus?.validation_errors?.length > 0) {
+      setErrors(uploadStatus.validation_errors);
+      setIsProcessing(false);
+      toast({
+        title: "Upload completed with errors",
+        description: `${uploadStatus.validation_errors.length} validation errors found`,
+        variant: "destructive"
+      });
+    } else if (uploadId && uploadStatus) {
+      const stockCount = uploadStatus.stock_count || uploadStatus.count || 0;
+      setProgress(25 + stockCount * 2);
+    }
+  }, [uploadStatus, uploadStocks, uploadId, toast]);
 
   const handleConfirmUpload = () => {
     onUploadComplete(processedStocks);
@@ -122,9 +166,11 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, onClose }) 
 
   const handleRetry = () => {
     setUploadedFile(null);
+    setUploadId(null);
     setProcessedStocks([]);
     setErrors([]);
     setProgress(0);
+    setCurrentStep('');
   };
 
   return (
@@ -152,18 +198,18 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, onClose }) 
             >
               <FileSpreadsheet className="h-12 w-12 text-gray-400 mx-auto mb-4" />
               <h3 className="text-lg font-semibold text-gray-900 mb-2">
-                Upload Excel File
+                Upload Spreadsheet File
               </h3>
               <p className="text-gray-600 mb-4">
-                Drag and drop your Excel file here, or click to browse
+                Drag and drop your spreadsheet file here, or click to browse
               </p>
               <p className="text-sm text-gray-500 mb-6">
-                Supported formats: .xlsx, .xls
+                Supported formats: .xlsx, .xls, .ods, .csv
               </p>
               
               <input
                 type="file"
-                accept=".xlsx,.xls"
+                accept=".xlsx,.xls,.ods,.csv"
                 onChange={handleFileSelect}
                 className="hidden"
                 id="file-upload"
@@ -182,45 +228,42 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, onClose }) 
             <div className="space-y-4">
               <div className="flex items-center gap-3">
                 <Loader2 className="h-5 w-5 animate-spin text-gray-600" />
-                <span className="text-gray-700">Processing Excel file...</span>
+                <span className="text-gray-700">{currentStep}</span>
               </div>
               
               <Progress value={progress} className="w-full" />
               
               <div className="text-sm text-gray-600">
-                {progress < 20 && "Validating file format..."}
-                {progress >= 20 && progress < 40 && "Extracting stock data..."}
-                {progress >= 40 && progress < 60 && "Validating stock symbols..."}
-                {progress >= 60 && progress < 80 && "Processing company information..."}
-                {progress >= 80 && "Finalizing data..."}
+                {uploadStatus && (
+                  <div>
+                    <p>Stocks processed: {uploadStatus.stock_count || 0}</p>
+                    {uploadStatus.validation_errors?.length > 0 && (
+                      <p className="text-red-600">
+                        Errors: {uploadStatus.validation_errors.length}
+                      </p>
+                    )}
+                  </div>
+                )}
               </div>
             </div>
           ) : (
             // Results State
             <div className="space-y-4">
-              <div className="flex items-center gap-3 text-green-600">
-                <CheckCircle className="h-5 w-5" />
-                <span className="font-medium">File processed successfully!</span>
-              </div>
-
-              <div className="grid grid-cols-2 gap-4 text-sm">
-                <div>
-                  <span className="text-gray-600">File:</span>
-                  <span className="ml-2 font-medium">{uploadedFile.name}</span>
-                </div>
-                <div>
-                  <span className="text-gray-600">Stocks Found:</span>
-                  <span className="ml-2 font-medium">{processedStocks.length}</span>
-                </div>
+              <div className="flex items-center gap-3">
+                {errors.length > 0 ? (
+                  <AlertCircle className="h-5 w-5 text-red-500" />
+                ) : (
+                  <CheckCircle className="h-5 w-5 text-green-500" />
+                )}
+                <span className="text-gray-700">
+                  {errors.length > 0 ? 'Upload completed with errors' : 'Upload completed successfully'}
+                </span>
               </div>
 
               {errors.length > 0 && (
                 <div className="bg-red-50 border border-red-200 rounded-lg p-4">
-                  <div className="flex items-center gap-2 text-red-700 mb-2">
-                    <AlertCircle className="h-4 w-4" />
-                    <span className="font-medium">Validation Warnings</span>
-                  </div>
-                  <ul className="text-sm text-red-600 space-y-1">
+                  <h4 className="text-sm font-medium text-red-800 mb-2">Validation Errors:</h4>
+                  <ul className="text-sm text-red-700 space-y-1">
                     {errors.map((error, index) => (
                       <li key={index}>• {error}</li>
                     ))}
@@ -228,33 +271,35 @@ const ExcelUpload: React.FC<ExcelUploadProps> = ({ onUploadComplete, onClose }) 
                 </div>
               )}
 
-              <div className="border rounded-lg p-4">
-                <h4 className="font-medium text-gray-900 mb-3">Preview of Uploaded Stocks</h4>
-                <div className="space-y-2 max-h-40 overflow-y-auto">
-                  {processedStocks.slice(0, 5).map((stock, index) => (
-                    <div key={index} className="flex items-center justify-between text-sm">
-                      <div className="flex items-center gap-3">
-                        <Badge variant="outline" className="text-xs">
-                          {stock.symbol}
-                        </Badge>
-                        <span className="font-medium">{stock.name}</span>
+              {processedStocks.length > 0 && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <h4 className="text-sm font-medium text-gray-900">
+                      Processed Stocks ({processedStocks.length})
+                    </h4>
+                    <Badge variant="secondary">
+                      {processedStocks.length} stocks
+                    </Badge>
+                  </div>
+                  
+                  <div className="max-h-60 overflow-y-auto space-y-2">
+                    {processedStocks.map((stock, index) => (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div className="flex items-center gap-3">
+                          <div className="font-medium text-gray-900">{stock.symbol}</div>
+                          <div className="text-sm text-gray-600">{stock.name}</div>
+                        </div>
+                        <div className="text-sm text-gray-500">
+                          {stock.sector} • {stock.exchange}
+                        </div>
                       </div>
-                      <div className="text-gray-600">
-                        {stock.sector} • {stock.exchange}
-                      </div>
-                    </div>
-                  ))}
-                  {processedStocks.length > 5 && (
-                    <div className="text-sm text-gray-500 text-center pt-2">
-                      +{processedStocks.length - 5} more stocks
-                    </div>
-                  )}
+                    ))}
+                  </div>
                 </div>
-              </div>
+              )}
 
               <div className="flex gap-3 pt-4">
-                <Button onClick={handleConfirmUpload} className="flex-1">
-                  <CheckCircle className="h-4 w-4 mr-2" />
+                <Button onClick={handleConfirmUpload} disabled={processedStocks.length === 0}>
                   Confirm Upload
                 </Button>
                 <Button variant="outline" onClick={handleRetry}>

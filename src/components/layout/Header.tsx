@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef } from "react";
 import { 
-  BarChart3, 
   Home, 
   TrendingUp, 
   Search, 
@@ -11,29 +10,28 @@ import {
   X, 
   ChevronDown,
   FileText,
-  Target,
-  Calendar
+  Calendar,
+  LogOut
 } from "lucide-react";
-import { Button } from "../ui/button";
-import { Badge } from "../ui/badge";
+import { Separator } from "../ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { useNavigate, useLocation } from "react-router-dom";
 import { mockStocks } from "@/data/mockData";
 import NotificationDropdown from "../ui/notification-dropdown";
 import UserProfileDropdown from "../ui/user-profile-dropdown";
+import { useAuth } from "@/hooks/useAuth";
 
 const Header = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const { user, isAuthenticated, logout } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [showSearchResults, setShowSearchResults] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showUserProfile, setShowUserProfile] = useState(false);
   const { toast } = useToast();
   const searchRef = useRef<HTMLDivElement>(null);
-  const mobileMenuRef = useRef<HTMLDivElement>(null);
 
   const isActive = (path: string) => location.pathname === path;
 
@@ -80,6 +78,21 @@ const Header = () => {
       };
     }
     
+    if (path === '/reports') {
+      return {
+        title: "Research Reports",
+        subtitle: "AI-Generated Equity Research Reports"
+      };
+    }
+    
+    if (path.startsWith('/reports/') && path.includes('/progress/')) {
+      const reportId = path.split('/')[2];
+      return {
+        title: "Research Report",
+        subtitle: `Report #${reportId} Analysis`
+      };
+    }
+    
     return {
       title: "Stock Analytica",
       subtitle: "Equity Research Platform"
@@ -98,301 +111,312 @@ const Header = () => {
 
   const handleStockSelect = (symbol: string) => {
     console.log('Navigating to:', symbol);
+    navigate(`/analyze/${symbol}`);
     setSearchQuery("");
     setShowSearchResults(false);
-    setIsSearching(true);
-    toast({
-      title: "Analysis Started",
-      description: `Analyzing ${symbol}...`,
-    });
-    setTimeout(() => {
-      navigate(`/analyze/${symbol}`);
-      setIsSearching(false);
-    }, 100);
   };
 
   const handleNavigation = (path: string) => {
-    console.log('Navigating to:', path);
     navigate(path);
     setIsMobileMenuOpen(false);
-    setShowNotifications(false);
-    setShowUserProfile(false);
   };
 
-  // Close search results and mobile menu when clicking outside or pressing Escape
+  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (searchRef.current && !searchRef.current.contains(event.target as Node)) {
         setShowSearchResults(false);
       }
-      if (mobileMenuRef.current && !mobileMenuRef.current.contains(event.target as Node)) {
-        setIsMobileMenuOpen(false);
-      }
-    };
-
-    const handleKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') {
-        setShowSearchResults(false);
-        setIsMobileMenuOpen(false);
-      }
     };
 
     document.addEventListener('mousedown', handleClickOutside);
-    document.addEventListener('keydown', handleKeyDown);
-    return () => {
-      document.removeEventListener('mousedown', handleClickOutside);
-      document.removeEventListener('keydown', handleKeyDown);
-    };
+    return () => document.removeEventListener('mousedown', handleClickOutside);
   }, []);
 
-  const navigationItems = [
-    { path: '/', label: 'Dashboard', icon: Home },
-    { path: '/portfolio', label: 'Portfolio', icon: TrendingUp },
-    { path: '/earnings', label: 'Earnings', icon: Calendar },
-  ];
+  // Handle keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setShowSearchResults(false);
+        setShowUserProfile(false);
+        setShowNotifications(false);
+        setIsMobileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyDown);
+    return () => document.removeEventListener('keydown', handleKeyDown);
+  }, []);
+
+  const handleLogout = () => {
+    logout();
+    toast({
+      title: "Logged out",
+      description: "You have been successfully logged out.",
+    });
+    navigate('/login');
+  };
+
+  // If not authenticated, don't render the header
+  if (!isAuthenticated) {
+    return null;
+  }
 
   return (
-    <>
-      <header className="bg-white border-b border-gray-200 shadow-sm sticky top-0 z-50">
-      <div className="px-4 sm:px-6 lg:px-8 py-4">
-        <div className="flex items-center justify-between max-w-7xl mx-auto">
+    <header className="bg-white shadow-sm border-b border-gray-200 sticky top-0 z-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+        {/* Main Header Row */}
+        <div className="flex items-center justify-between h-16">
           {/* Logo and Brand */}
-          <div className="flex items-center gap-4">
-            <div 
-              className="flex items-center justify-center w-10 h-10 bg-blue-600 rounded-xl cursor-pointer shadow-lg hover:shadow-xl transition-all duration-200"
+          <div className="flex items-center flex-shrink-0">
+            <div className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-lg flex items-center justify-center shadow-sm">
+                <div className="flex space-x-0.5">
+                  <div className="w-0.5 h-2 bg-white rounded-full"></div>
+                  <div className="w-0.5 h-3 bg-white rounded-full"></div>
+                  <div className="w-0.5 h-4 bg-white rounded-full"></div>
+                </div>
+              </div>
+              <div className="hidden sm:block">
+                <h1 className="text-xl font-bold text-gray-900">StockA</h1>
+              </div>
+            </div>
+          </div>
+
+          {/* Desktop Navigation - Hidden on mobile */}
+          <nav className="hidden lg:flex items-center space-x-1">
+            <button
               onClick={() => handleNavigation('/')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/') 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
             >
-              <BarChart3 className="w-6 h-6 text-white" />
-            </div>
-            <div className="hidden sm:block">
-              <h1 
-                className="text-xl font-bold text-gray-900 cursor-pointer hover:text-black transition-colors"
-                onClick={() => handleNavigation('/')}
-              >
-                Stock Analytica
-              </h1>
-              <p className="text-sm text-gray-500 font-medium">Equity Research Platform</p>
-            </div>
-          </div>
-
-
-
-          {/* Page Title - Mobile */}
-          <div className="lg:hidden flex-1 ml-4">
-            <h2 className="text-lg font-semibold text-gray-900">{pageInfo.title}</h2>
-            <p className="text-xs text-gray-500">{pageInfo.subtitle}</p>
-          </div>
-          
-          {/* Navigation - Desktop */}
-          <nav className="hidden md:flex items-center gap-1">
-            {navigationItems.map((item) => {
-              const Icon = item.icon;
-              return (
-                <Button 
-                  key={item.path}
-                  variant={isActive(item.path) ? "default" : "ghost"} 
-                  size="sm"
-                  className={`px-4 py-2 rounded-lg transition-all duration-200 ${
-                    isActive(item.path) 
-                      ? 'bg-blue-600 text-white shadow-md hover:bg-blue-700' 
-                      : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                  }`}
-                  onClick={() => handleNavigation(item.path)}
-                >
-                  <Icon className="w-4 h-4 mr-2" />
-                  {item.label}
-                </Button>
-              );
-            })}
+              <Home className="w-4 h-4" />
+              <span>Dashboard</span>
+            </button>
+            <button
+              onClick={() => handleNavigation('/portfolio')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/portfolio') 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <TrendingUp className="w-4 h-4" />
+              <span>Portfolio</span>
+            </button>
+            <button
+              onClick={() => handleNavigation('/earnings')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/earnings') 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <Calendar className="w-4 h-4" />
+              <span>Earnings</span>
+            </button>
+            <button
+              onClick={() => handleNavigation('/reports')}
+              className={`flex items-center space-x-2 px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 ${
+                isActive('/reports') 
+                  ? 'bg-blue-600 text-white shadow-sm' 
+                  : 'text-gray-600 hover:text-gray-900 hover:bg-gray-50'
+              }`}
+            >
+              <FileText className="w-4 h-4" />
+              <span>Reports</span>
+            </button>
           </nav>
 
-          {/* Search and Actions */}
-          <div className="flex items-center gap-3">
-            {/* Search */}
+          {/* Right side - Search, Actions, Mobile Menu */}
+          <div className="flex items-center space-x-2 sm:space-x-3">
+            {/* Search - Responsive sizing */}
             <div className="relative hidden sm:block" ref={searchRef}>
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
               <input
                 type="text"
                 placeholder="Search stocks..."
                 value={searchQuery}
-                onChange={(e) => {
-                  setSearchQuery(e.target.value);
-                  setShowSearchResults(e.target.value.length > 0);
-                }}
-                onFocus={() => setShowSearchResults(searchQuery.length > 0)}
-                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50 hover:bg-white transition-colors w-64"
+                onChange={(e) => setSearchQuery(e.target.value)}
+                onFocus={() => setShowSearchResults(true)}
+                className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent w-48 lg:w-64 transition-all duration-200"
               />
               
               {/* Search Results Dropdown */}
               {showSearchResults && filteredStocks.length > 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-64 overflow-y-auto">
+                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
                   {filteredStocks.map((stock) => (
-                    <div
+                    <button
                       key={stock.symbol}
-                      className="flex items-center justify-between p-3 hover:bg-gray-50 cursor-pointer border-b border-gray-100 last:border-b-0 transition-colors"
                       onClick={() => handleStockSelect(stock.symbol)}
+                      className="w-full px-4 py-2 text-left hover:bg-gray-50 flex items-center justify-between transition-colors duration-150"
                     >
                       <div>
                         <div className="font-medium text-gray-900">{stock.symbol}</div>
                         <div className="text-sm text-gray-500">{stock.name}</div>
                       </div>
-                      <div className="text-right">
-                        <div className="font-medium text-gray-900">${stock.currentPrice?.toFixed(2)}</div>
-                        <div className={`text-sm ${stock.priceChangePercent && stock.priceChangePercent >= 0 ? 'text-green-600' : 'text-red-600'}`}>
-                          {stock.priceChangePercent && stock.priceChangePercent >= 0 ? '+' : ''}{stock.priceChangePercent?.toFixed(2)}%
-                        </div>
-                      </div>
-                    </div>
+                      <div className="text-sm text-gray-400">{stock.sector}</div>
+                    </button>
                   ))}
                 </div>
               )}
-              
-              {/* No Results Message */}
-              {showSearchResults && searchQuery && filteredStocks.length === 0 && (
-                <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 p-3">
-                  <div className="text-sm text-gray-500">No stocks found for "{searchQuery}"</div>
-                </div>
-              )}
             </div>
 
-            {/* Notifications */}
-            <div className="relative">
-              <Button 
-                variant="ghost" 
-                size="sm" 
-                className="p-2 rounded-lg hover:bg-gray-100 relative transition-colors"
-                onClick={() => {
-                  setShowNotifications(!showNotifications);
-                  setShowUserProfile(false);
-                }}
+            {/* Action Buttons */}
+            <div className="flex items-center space-x-1">
+              {/* Notifications */}
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="relative p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
               >
-                <Bell className="w-5 h-5 text-gray-600" />
-                <Badge className="absolute -top-1 -right-1 h-5 w-5 rounded-full p-0 text-xs bg-red-500 animate-pulse">
-                  3
-                </Badge>
-              </Button>
-              <NotificationDropdown
-                isOpen={showNotifications}
-                onClose={() => setShowNotifications(false)}
-                onMarkAllRead={() => {
-                  toast({
-                    title: "Notifications",
-                    description: "All notifications marked as read",
-                  });
-                }}
-              />
-            </div>
+                <Bell className="w-5 h-5" />
+                <span className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full text-xs text-white flex items-center justify-center font-medium">3</span>
+              </button>
 
-            {/* Settings */}
-            <Button 
-              variant="ghost" 
-              size="sm" 
-              className="p-2 rounded-lg hover:bg-gray-100 transition-colors"
-              onClick={() => handleNavigation('/settings')}
-            >
-              <Settings className="w-5 h-5 text-gray-600" />
-            </Button>
-
-            {/* User Profile */}
-            <div className="relative">
-              <div 
-                className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center cursor-pointer hover:shadow-md transition-all duration-200 hover:scale-105"
-                onClick={() => {
-                  setShowUserProfile(!showUserProfile);
-                  setShowNotifications(false);
-                }}
+              {/* Settings */}
+              <button 
+                onClick={() => handleNavigation('/settings')}
+                className="p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
               >
-                <User className="w-4 h-4 text-white" />
+                <Settings className="w-5 h-5" />
+              </button>
+
+              {/* User Profile */}
+              <div className="relative">
+                <button
+                  onClick={() => setShowUserProfile(!showUserProfile)}
+                  className="flex items-center space-x-2 p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
+                >
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-600 to-blue-700 rounded-full flex items-center justify-center shadow-sm">
+                    <User className="w-4 h-4 text-white" />
+                  </div>
+                  <span className="hidden lg:block text-sm font-medium">
+                    {user?.username || 'User'}
+                  </span>
+                  <ChevronDown className="w-4 h-4 hidden lg:block" />
+                </button>
+
+                {/* User Profile Dropdown */}
+                <UserProfileDropdown
+                  isOpen={showUserProfile}
+                  onClose={() => setShowUserProfile(false)}
+                  onNavigate={(path) => {
+                    handleNavigation(path);
+                    setShowUserProfile(false);
+                  }}
+                />
               </div>
-              <UserProfileDropdown
-                isOpen={showUserProfile}
-                onClose={() => setShowUserProfile(false)}
-                onNavigate={handleNavigation}
-              />
             </div>
 
-            {/* Mobile Menu Button */}
-            <Button
-              variant="ghost"
-              size="sm"
-              className="md:hidden p-2 rounded-lg hover:bg-gray-100"
+            {/* Mobile menu button */}
+            <button
               onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+              className="lg:hidden p-2 text-gray-600 hover:text-gray-900 hover:bg-gray-50 rounded-lg transition-all duration-200"
             >
               {isMobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            </Button>
+            </button>
           </div>
         </div>
 
-        {/* Mobile Menu */}
+                {/* Mobile Navigation */}
         {isMobileMenuOpen && (
-          <div className="md:hidden mt-4 pb-4 border-t border-gray-200" ref={mobileMenuRef}>
-            <div className="pt-4 space-y-2">
-              {/* Mobile Search */}
+          <div className="lg:hidden border-t border-gray-200 bg-gray-50 transition-all duration-300 ease-in-out">
+            {/* Mobile Search */}
+            <div className="p-4 border-b border-gray-200" ref={searchRef}>
               <div className="relative">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Search className="w-4 h-4 absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
                 <input
                   type="text"
                   placeholder="Search stocks..."
                   value={searchQuery}
-                  onChange={(e) => {
-                    setSearchQuery(e.target.value);
-                    setShowSearchResults(e.target.value.length > 0);
-                  }}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-gray-50"
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onFocus={() => setShowSearchResults(true)}
+                  className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
                 />
+                
+                {/* Mobile Search Results */}
+                {showSearchResults && filteredStocks.length > 0 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-60 overflow-y-auto">
+                    {filteredStocks.map((stock) => (
+                      <button
+                        key={stock.symbol}
+                        onClick={() => handleStockSelect(stock.symbol)}
+                        className="w-full px-4 py-3 text-left hover:bg-gray-50 flex items-center justify-between transition-colors duration-150"
+                      >
+                        <div>
+                          <div className="font-medium text-gray-900">{stock.symbol}</div>
+                          <div className="text-sm text-gray-500">{stock.name}</div>
+                        </div>
+                        <div className="text-sm text-gray-400">{stock.sector}</div>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
+            </div>
 
-              {/* Mobile Navigation */}
-              <div className="space-y-1">
-                {navigationItems.map((item) => {
-                  const Icon = item.icon;
-                  return (
-                    <Button
-                      key={item.path}
-                      variant={isActive(item.path) ? "default" : "ghost"}
-                      className={`w-full justify-start ${
-                        isActive(item.path) 
-                          ? 'bg-blue-600 text-white' 
-                          : 'text-gray-600 hover:text-gray-900 hover:bg-gray-100'
-                      }`}
-                      onClick={() => handleNavigation(item.path)}
-                    >
-                      <Icon className="w-4 h-4 mr-3" />
-                      {item.label}
-                    </Button>
-                  );
-                })}
-              </div>
-
-              {/* Quick Actions */}
-              <div className="pt-2 border-t border-gray-200">
-                <div className="text-xs font-medium text-gray-500 mb-2 px-3">Quick Actions</div>
-                <div className="space-y-1">
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                    onClick={() => handleNavigation('/report/AAPL')}
-                  >
-                    <FileText className="w-4 h-4 mr-3" />
-                    View Sample Report
-                  </Button>
-                  <Button
-                    variant="ghost"
-                    className="w-full justify-start text-gray-600 hover:text-gray-900 hover:bg-gray-100"
-                    onClick={() => handleNavigation('/analyze/AAPL')}
-                  >
-                    <Target className="w-4 h-4 mr-3" />
-                    Analyze Apple
-                  </Button>
-                </div>
-              </div>
+            {/* Mobile Navigation Links */}
+            <div className="p-4 space-y-2">
+              <button
+                onClick={() => handleNavigation('/')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Home className="w-5 h-5" />
+                <span>Dashboard</span>
+              </button>
+              <button
+                onClick={() => handleNavigation('/portfolio')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/portfolio') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <TrendingUp className="w-5 h-5" />
+                <span>Portfolio</span>
+              </button>
+              <button
+                onClick={() => handleNavigation('/earnings')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/earnings') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <Calendar className="w-5 h-5" />
+                <span>Earnings</span>
+              </button>
+              <button
+                onClick={() => handleNavigation('/reports')}
+                className={`w-full flex items-center space-x-3 px-4 py-3 rounded-lg text-sm font-medium transition-all duration-200 ${
+                  isActive('/reports') ? 'bg-blue-600 text-white shadow-sm' : 'text-gray-600 hover:bg-gray-100'
+                }`}
+              >
+                <FileText className="w-5 h-5" />
+                <span>Reports</span>
+              </button>
+              
+              <Separator className="my-4" />
+              
+              <button
+                onClick={handleLogout}
+                className="w-full flex items-center space-x-3 px-4 py-3 text-red-600 hover:bg-red-50 rounded-lg text-sm font-medium transition-all duration-200"
+              >
+                <LogOut className="w-5 h-5" />
+                <span>Logout</span>
+              </button>
             </div>
           </div>
         )}
       </div>
+
+      {/* Notifications Dropdown */}
+      <NotificationDropdown
+        isOpen={showNotifications}
+        onClose={() => setShowNotifications(false)}
+      />
     </header>
-    
-    </>
   );
 };
 

@@ -13,9 +13,9 @@ interface StockCardProps {
   country?: string;
   rating?: number;
   hasReport?: boolean;
-  currentPrice?: number;
-  priceChange?: number;
-  priceChangePercent?: number;
+  currentPrice?: number | string | null;
+  priceChange?: number | string | null;
+  priceChangePercent?: number | string | null;
   onAnalyze?: () => void;
   onViewReport?: () => void;
   onSelect?: () => void;
@@ -85,13 +85,13 @@ const StockCard = ({
         {currentPrice && (
           <div className="flex items-center justify-between">
             <div className="text-lg font-bold text-gray-900">
-              ${currentPrice.toFixed(2)}
+              ${typeof currentPrice === 'string' ? parseFloat(currentPrice).toFixed(2) : currentPrice.toFixed(2)}
             </div>
-            {priceChange !== undefined && priceChangePercent !== undefined && (
+            {priceChange !== undefined && priceChange !== null && priceChangePercent !== undefined && priceChangePercent !== null && (
               <div className={`flex items-center gap-1 text-sm font-medium ${
-                priceChange >= 0 ? 'text-green-600' : 'text-red-600'
+                (typeof priceChange === 'string' ? parseFloat(priceChange) : priceChange) >= 0 ? 'text-green-600' : 'text-red-600'
               }`}>
-                {priceChange >= 0 ? '+' : ''}{priceChange.toFixed(2)} ({priceChangePercent >= 0 ? '+' : ''}{priceChangePercent.toFixed(2)}%)
+                {(typeof priceChange === 'string' ? parseFloat(priceChange) : priceChange) >= 0 ? '+' : ''}{typeof priceChange === 'string' ? parseFloat(priceChange).toFixed(2) : priceChange.toFixed(2)} ({(typeof priceChangePercent === 'string' ? parseFloat(priceChangePercent) : priceChangePercent) >= 0 ? '+' : ''}{typeof priceChangePercent === 'string' ? parseFloat(priceChangePercent).toFixed(2) : priceChangePercent.toFixed(2)}%)
               </div>
             )}
           </div>
